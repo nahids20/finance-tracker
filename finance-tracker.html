@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pocketbook</title>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f4;--surface:#fff;--ink:#14232b;--mute:#5d707b;--line:#d5dee3;--accent:#1f4fd8;--over:#c2362b;--ok:#1f7a5a;--track:#e2e9ed;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a20;--surface:#17252d;--ink:#e6eef2;--mute:#8fa3ae;--line:#2a3b45;--accent:#6f94ff;--over:#ff7a6b;--ok:#4cc79a;--track:#233540}}
+:root[data-theme="dark"]{--bg:#0f1a20;--surface:#17252d;--ink:#e6eef2;--mute:#8fa3ae;--line:#2a3b45;--accent:#6f94ff;--over:#ff7a6b;--ok:#4cc79a;--track:#233540}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 "Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+h1{font-size:22px;margin:0;font-weight:700;letter-spacing:-.01em}
+h2{font-size:15px;margin:0 0 12px;font-weight:700}
+.month{display:flex;align-items:center;gap:6px}
+.month b{min-width:130px;text-align:center;font-weight:500}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+:root[data-theme="dark"] button.primary{color:#0f1a20}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.primary{color:#0f1a20}}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;min-width:0;width:100%}
+.sum{display:flex;flex-wrap:wrap;gap:8px 40px;padding:4px 0 22px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.sum div span{display:block;color:var(--mute);font-size:13px}
+.sum div b{font-size:28px;font-weight:700;letter-spacing:-.02em}
+.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:24px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.form .full{grid-column:1/-1}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;border:0;border-radius:0;background:none}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.tools{display:flex;gap:8px;margin-bottom:10px}
+.tx{display:grid;grid-template-columns:10px 1fr auto auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.dot{width:10px;height:10px;border-radius:50%}
+.tx small{color:var(--mute);display:block}
+.amt{font-weight:500}.amt.in{color:var(--ok)}
+.x{border:0;background:none;color:var(--mute);padding:2px 6px}
+.x:hover{color:var(--over)}
+.empty{color:var(--mute);padding:14px 0}
+.legend{display:grid;gap:4px;margin-top:10px;font-size:14px}
+.legend div{display:flex;align-items:center;gap:8px}.legend em{margin-left:auto;font-style:normal;color:var(--mute)}
+.donut{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.bud{padding:9px 0;border-top:1px solid var(--line)}
+.bud:first-of-type{border-top:0}
+.bud .r{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.bud input{width:96px;text-align:right}
+.track{height:8px;border-radius:4px;background:var(--track);margin:7px 0 3px;overflow:hidden}
+.track i{display:block;height:100%;border-radius:4px}
+.note{font-size:13px;color:var(--mute)}
+.over{color:var(--over)}
+.addcat{display:flex;gap:8px;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Pocketbook</h1>
+  <div class="month">
+    <button onclick="shift(-1)" aria-label="Previous month">&lsaquo;</button><b id="mlabel"></b><button onclick="shift(1)" aria-label="Next month">&rsaquo;</button>
+  </div>
+</header>
+
+<div class="sum" id="sum"></div>
+
+<div class="grid">
+  <div>
+    <div class="panel">
+      <h2>Add a transaction</h2>
+      <div class="form">
+        <div class="seg full" role="group" aria-label="Type"><button id="tExp" class="on" onclick="setType('expense')">Expense</button><button id="tInc" onclick="setType('income')">Income</button></div>
+        <input id="amt" type="number" min="0" step="0.01" placeholder="Amount" aria-label="Amount">
+        <input id="date" type="date" aria-label="Date">
+        <select id="cat" class="full" aria-label="Category"></select>
+        <input id="memo" class="full" placeholder="Note (optional)" aria-label="Note">
+        <button class="primary full" onclick="addTx()">Add transaction</button>
+      </div>
+      <div class="note" id="err" style="margin-top:8px"></div>
+    </div>
+    <div class="panel">
+      <h2>Transactions</h2>
+      <div class="tools"><input id="q" placeholder="Search notes" oninput="render()" aria-label="Search"><select id="fcat" onchange="render()" aria-label="Filter by category"></select></div>
+      <div id="list"></div>
+    </div>
+  </div>
+  <div>
+    <div class="panel"><h2>Where the money went</h2><div id="donut"></div></div>
+    <div class="panel"><h2>Last 6 months of spending</h2><div id="bars"></div></div>
+    <div class="panel">
+      <h2>Monthly budgets</h2>
+      <div id="buds"></div>
+      <div class="addcat"><input id="newcat" placeholder="New category name" aria-label="New category"><button onclick="addCat()">Add category</button></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const COLORS=['#2f6fed','#e0663a','#1f9d73','#a05bd1','#d9a21b','#d1477a','#3aa6c9','#7b8794','#6b8e23','#c0562f'];
+const KEY='pocketbook-v1';
+let S={tx:[],budgets:{},cats:['Housing','Groceries','Dining out','Transport','Utilities','Health','Fun','Shopping']};
+let type='expense';
+const now=new Date();
+let month=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const color=c=>c==='Income'?'var(--ok)':COLORS[Math.max(0,S.cats.indexOf(c))%COLORS.length];
+const mkey=d=>d.slice(0,7);
+const sumBy=(arr)=>arr.reduce((a,t)=>a+t.amt,0);
+function shift(n){let[y,m]=month.split('-').map(Number);m+=n;if(m<1){m=12;y--}if(m>12){m=1;y++}month=y+'-'+String(m).padStart(2,'0');render()}
+function setType(t){type=t;$('tExp').classList.toggle('on',t==='expense');$('tInc').classList.toggle('on',t==='income');$('cat').disabled=t==='income'}
+function addTx(){
+  const amt=parseFloat($('amt').value),date=$('date').value;
+  if(!(amt>0)){$('err').textContent='Enter an amount greater than 0.';return}
+  if(!date){$('err').textContent='Pick a date.';return}
+  $('err').textContent='';
+  S.tx.push({id:Date.now()+Math.random(),type,amt,date,cat:type==='income'?'Income':$('cat').value,note:$('memo').value.trim()});
+  $('amt').value='';$('memo').value='';
+  if(mkey(date)!==month)month=mkey(date);
+  save();render();
+}
+function del(id){S.tx=S.tx.filter(t=>t.id!==id);save();render()}
+function setBudget(c,v){const n=parseFloat(v);if(n>0)S.budgets[c]=n;else delete S.budgets[c];save();render()}
+function addCat(){
+  const n=$('newcat').value.trim();
+  if(!n||S.cats.some(c=>c.toLowerCase()===n.toLowerCase()))return;
+  S.cats.push(n);$('newcat').value='';save();fillCats();render();
+}
+function sample(){
+  const rnd=(a,b)=>Math.round((a+Math.random()*(b-a))*100)/100;
+  for(let i=0;i<6;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const p=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    S.tx.push({id:Math.random(),type:'income',amt:4200,date:p+'-01',cat:'Income',note:'Paycheck'});
+    [['Housing',1450,1450,'Rent'],['Groceries',320,480,'Groceries'],['Dining out',90,220,'Dinner out'],['Transport',60,160,'Fuel & transit'],['Utilities',110,190,'Power & internet'],['Fun',40,160,'Movies'],['Health',20,120,'Pharmacy'],['Shopping',50,260,'Online order']]
+    .forEach(([c,a,b,n],k)=>S.tx.push({id:Math.random(),type:'expense',amt:rnd(a,b),date:p+'-'+String(2+k*3).padStart(2,'0'),cat:c,note:n}));
+  }
+  S.budgets={Housing:1500,Groceries:400,'Dining out':150,Transport:120,Utilities:170,Fun:100,Health:80,Shopping:150};
+  save();render();
+}
+function fillCats(){
+  $('cat').innerHTML=S.cats.map(c=>`<option>${esc(c)}</option>`).join('');
+  const f=$('fcat'),v=f.value;
+  f.innerHTML='<option value="">All categories</option><option>Income</option>'+S.cats.map(c=>`<option>${esc(c)}</option>`).join('');
+  f.value=v;
+}
+function donut(rows,total){
+  if(!rows.length)return '<div class="empty">No spending this month yet. Add an expense to see the breakdown.</div>';
+  const R=52,C=2*Math.PI*R;let off=0;
+  const arcs=rows.map(([c,v])=>{const l=v/total*C;const s=`<circle r="${R}" cx="70" cy="70" fill="none" stroke="${color(c)}" stroke-width="22" stroke-dasharray="${l} ${C-l}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"/>`;off+=l;return s}).join('');
+  return `<div class="donut"><svg width="140" height="140" viewBox="0 0 140 140" role="img" aria-label="Spending by category">${arcs}<text x="70" y="68" text-anchor="middle" font-size="11" fill="var(--mute)">spent</text><text x="70" y="86" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">${money(total).replace(/\.00$/,'')}</text></svg>
+  <div class="legend" style="flex:1;min-width:150px">${rows.map(([c,v])=>`<div><span class="dot" style="background:${color(c)}"></span>${esc(c)}<em>${money(v)} · ${Math.round(v/total*100)}%</em></div>`).join('')}</div></div>`;
+}
+function bars(){
+  const ms=[];let[y,m]=month.split('-').map(Number);
+  for(let i=5;i>=0;i--){const d=new Date(y,m-1-i,1);ms.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))}
+  const vals=ms.map(k=>sumBy(S.tx.filter(t=>t.type==='expense'&&mkey(t.date)===k)));
+  const max=Math.max(...vals,1);
+  const g=ms.map((k,i)=>{const h=vals[i]/max*120,x=14+i*52;const lbl=new Date(k+'-01T00:00').toLocaleString(undefined,{month:'short'});
+    return `<rect x="${x}" y="${140-h}" width="34" height="${h}" rx="4" fill="${k===month?'var(--accent)':'var(--track)'}"/><text x="${x+17}" y="156" text-anchor="middle" font-size="11" fill="var(--mute)">${lbl}</text>${vals[i]?`<text x="${x+17}" y="${134-h}" text-anchor="middle" font-size="10" fill="var(--ink)">${Math.round(vals[i])}</text>`:''}`}).join('');
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 330 164" width="100%" style="min-width:300px" role="img" aria-label="Monthly spending">${g}</svg></div>`;
+}
+function render(){
+  $('mlabel').textContent=new Date(month+'-01T00:00').toLocaleString(undefined,{month:'long',year:'numeric'});
+  const tm=S.tx.filter(t=>mkey(t.date)===month);
+  const spent=sumBy(tm.filter(t=>t.type==='expense')),inc=sumBy(tm.filter(t=>t.type==='income')),net=inc-spent;
+  $('sum').innerHTML=`<div><span>Spent</span><b>${money(spent)}</b></div><div><span>Income</span><b>${money(inc)}</b></div><div><span>Left over</span><b class="${net<0?'over':''}">${money(net)}</b></div>`;
+  const by={};tm.filter(t=>t.type==='expense').forEach(t=>by[t.cat]=(by[t.cat]||0)+t.amt);
+  const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]);
+  $('donut').innerHTML=donut(rows,spent);
+  $('bars').innerHTML=bars();
+  $('buds').innerHTML=S.cats.map(c=>{
+    const b=S.budgets[c],s=by[c]||0,pct=b?Math.min(100,s/b*100):0,o=b&&s>b;
+    const msg=!b?'No budget set':o?`<span class="over">${money(s-b)} over</span>`:`${money(b-s)} left`;
+    return `<div class="bud"><div class="r"><span><span class="dot" style="background:${color(c)};display:inline-block;margin-right:8px"></span>${esc(c)}</span><input type="number" min="0" step="10" value="${b||''}" placeholder="Budget" aria-label="Budget for ${esc(c)}" onchange="setBudget(this.dataset.c,this.value)" data-c="${esc(c)}"></div>
+    <div class="track"><i style="width:${pct}%;background:${o?'var(--over)':pct>85?'#d9a21b':'var(--ok)'}"></i></div><div class="note">${money(s)} spent · ${msg}</div></div>`}).join('');
+  const q=$('q').value.toLowerCase(),fc=$('fcat').value;
+  const L=tm.filter(t=>(!fc||t.cat===fc)&&(!q||(t.note+t.cat).toLowerCase().includes(q))).sort((a,b)=>b.date.localeCompare(a.date));
+  $('list').innerHTML=L.length?L.map(t=>`<div class="tx"><span class="dot" style="background:${color(t.cat)}"></span><div>${esc(t.note||t.cat)}<small>${esc(t.cat)} · ${new Date(t.date+'T00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})}</small></div><span class="amt ${t.type==='income'?'in':''}">${t.type==='income'?'+':'−'}${money(t.amt)}</span><button class="x" aria-label="Delete transaction" onclick="del(${t.id})">✕</button></div>`).join('')
+    :`<div class="empty">${S.tx.length?'No transactions match this month and filter.':'Nothing here yet. Add your first transaction, or '}${S.tx.length?'':'<button onclick="sample()">load sample data</button>'}</div>`;
+}
+$('date').value=now.toISOString().slice(0,10);
+fillCats();render();
+</script>
+</body>
+</html>
