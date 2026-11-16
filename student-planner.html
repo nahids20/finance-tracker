@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Plumline · Student Planner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<style>
+:root{--bg:#fbf3ea;--card:#fffdf9;--ink:#2d1b2e;--mut:#8a7384;--plum:#5b2a4e;--coral:#e8664d;--green:#2f9e6e;--amber:#f2a93b;--rose:#d6455d;--line:#eadccf;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1e1420;--card:#2a1c2c;--ink:#f6e9dd;--mut:#b49aae;--plum:#e7a6d4;--line:#43304a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1e1420;--card:#2a1c2c;--ink:#f6e9dd;--mut:#b49aae;--plum:#e7a6d4;--line:#43304a;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(120deg,#5b2a4e,#c4456b 60%,#e8664d);color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+header h1{margin:0;font-size:22px}.wrap{max-width:980px;margin:0 auto;padding:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+input,select,button{font:inherit;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+button{cursor:pointer;background:var(--coral);color:#fff;border:0;font-weight:600}button.ghost{background:transparent;color:var(--plum);border:1px solid var(--line)}
+button.on{background:var(--plum);color:var(--bg)}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.grow{flex:1;min-width:140px}
+.task{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-left:6px solid var(--amber);padding:10px 12px;margin-bottom:8px;background:var(--card);border-radius:10px}
+.task.high{border-left-color:var(--rose)}.task.low{border-left-color:var(--green)}.task.done .t{text-decoration:line-through;opacity:.5}
+.t{font-weight:600}.m{color:var(--mut);font-size:13px}.badge{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--line);margin-left:6px}.badge.late{background:var(--rose);color:#fff}
+.banner{background:#fff1dc;color:#6b3a00;border:1px solid var(--amber);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}.stat{border-radius:12px;padding:12px;color:#fff;font-weight:700}.stat b{display:block;font-size:26px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.cell{min-height:84px;border:1px solid var(--line);border-radius:8px;padding:4px;font-size:12px;background:var(--card);overflow:hidden}
+.cell.today{outline:2px solid var(--coral)}.cell.dim{opacity:.4}.pill{display:block;border-radius:6px;padding:1px 5px;margin-top:2px;color:#fff;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--amber)}.pill.high{background:var(--rose)}.pill.low{background:var(--green)}.pill.done{opacity:.4;text-decoration:line-through}
+.dh{text-align:center;font-size:12px;color:var(--mut);font-weight:700}.err{color:var(--rose);font-size:14px}
+.calwrap{overflow-x:auto}.calwrap .cal{min-width:560px}
+</style></head><body><div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect}=React;
+const mem={};
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?(mem[k]??d):JSON.parse(v)}catch{return mem[k]??d}},set(k,v){mem[k]=v;try{localStorage.setItem(k,JSON.stringify(v))}catch{}},del(k){delete mem[k];try{localStorage.removeItem(k)}catch{}}};
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const TODAY=iso(new Date());
+const SOON=(()=>{const d=new Date();d.setDate(d.getDate()+2);return iso(d)})();
+const hash=async(pw,salt)=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+pw)))].map(x=>x.toString(16).padStart(2,'0')).join('');
+
+function Auth({onAuth}){
+ const [reg,setReg]=useState(false),[f,setF]=useState({name:'',email:'',password:''}),[err,setErr]=useState('');
+ const s=k=>e=>setF({...f,[k]:e.target.value});
+ const go=async()=>{
+  const email=f.email.trim().toLowerCase(),users=store.get('pl:users',{});
+  if(!email||f.password.length<6||(reg&&!f.name.trim()))return setErr('Fill every field; password needs 6+ characters.');
+  if(reg){if(users[email])return setErr('That email is already registered.');
+   const salt=crypto.getRandomValues(new Uint32Array(2)).join('-');users[email]={name:f.name.trim(),salt,h:await hash(f.password,salt)};store.set('pl:users',users)}
+  else{const u=users[email];if(!u||u.h!==await hash(f.password,u.salt))return setErr('Invalid email or password.')}
+  const user={name:users[email].name,email};store.set('pl:session',user);onAuth(user)};
+ return <div className="wrap" style={{maxWidth:400,paddingTop:60}}><div className="card"><h2 style={{marginTop:0,color:'var(--plum)'}}>{reg?'Create your account':'Welcome back'}</h2>
+  <div className="row" style={{flexDirection:'column',alignItems:'stretch'}}>
+  {reg&&<input placeholder="Name" value={f.name} onChange={s('name')}/>}
+  <input placeholder="Email" type="email" value={f.email} onChange={s('email')}/>
+  <input placeholder="Password (6+ characters)" type="password" value={f.password} onChange={s('password')} onKeyDown={e=>e.key==='Enter'&&go()}/>
+  {err&&<div className="err">{err}</div>}<button onClick={go}>{reg?'Sign up':'Log in'}</button>
+  <button className="ghost" onClick={()=>{setReg(!reg);setErr('')}}>{reg?'I already have an account':'New here? Sign up'}</button>
+  <button className="ghost" onClick={()=>{const u={name:'Guest',email:'guest'};store.set('pl:session',u);onAuth(u)}}>Continue without an account</button></div>
+  <p className="m" style={{marginBottom:0}}>Accounts and tasks are saved in this browser.</p></div></div>
+}
+
+function TaskForm({onSave}){
+ const blank={title:'',course:'',due_date:TODAY,priority:'medium'};const [t,setT]=useState(blank);
+ const s=k=>e=>setT({...t,[k]:e.target.value});
+ return <div className="card"><div className="row">
+  <input className="grow" placeholder="Assignment title" value={t.title} onChange={s('title')} onKeyDown={e=>e.key==='Enter'&&t.title.trim()&&(onSave(t),setT({...t,title:''}))}/>
+  <input placeholder="Course" value={t.course} onChange={s('course')} style={{width:130}}/>
+  <input type="date" value={t.due_date} onChange={s('due_date')}/>
+  <select value={t.priority} onChange={s('priority')}><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+  <button onClick={()=>{if(t.title.trim()&&t.due_date){onSave(t);setT({...t,title:''})}}}>Add task</button></div></div>
+}
+
+function Calendar({tasks}){
+ const [m,setM]=useState(()=>{const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1)});
+ const start=new Date(m);start.setDate(1-m.getDay());
+ const days=[...Array(42)].map((_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d});
+ return <div className="card"><div className="row" style={{justifyContent:'space-between',marginBottom:10}}>
+  <button className="ghost" onClick={()=>setM(new Date(m.getFullYear(),m.getMonth()-1,1))}>‹</button>
+  <b>{m.toLocaleString(undefined,{month:'long',year:'numeric'})}</b>
+  <button className="ghost" onClick={()=>setM(new Date(m.getFullYear(),m.getMonth()+1,1))}>›</button></div>
+  <div className="calwrap"><div className="cal">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=><div key={d} className="dh">{d}</div>)}
+  {days.map(d=>{const k=iso(d);return <div key={k} className={'cell'+(k===TODAY?' today':'')+(d.getMonth()!==m.getMonth()?' dim':'')}>{d.getDate()}
+   {tasks.filter(t=>t.due_date===k).map(t=><span key={t.id} title={t.title} className={'pill '+t.priority+(t.completed?' done':'')}>{t.title}</span>)}</div>})}</div></div></div>
+}
+
+function App(){
+ const [user,setUser]=useState(()=>store.get('pl:session',null));
+ const [tasks,setTasks]=useState(()=>user?store.get('pl:tasks:'+user.email,[]):[]);
+ const [view,setView]=useState('list'),[flt,setFlt]=useState({q:'',status:'',priority:'',course:''});
+ const save=l=>{setTasks(l);store.set('pl:tasks:'+user.email,l)};
+ const open=tasks.filter(t=>!t.completed),late=open.filter(t=>t.due_date<TODAY),soon=open.filter(t=>t.due_date>=TODAY&&t.due_date<=SOON);
+ useEffect(()=>{if(!user||!late.length&&!soon.length)return;
+  const n=()=>{try{if('Notification' in window&&Notification.permission==='granted')new Notification('Plumline',{body:late.length+' overdue, '+soon.length+' due within 2 days'})}catch{}};
+  try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission().then(n);else n()}catch{}
+  const id=setInterval(n,30*60*1000);return()=>clearInterval(id)},[user,late.length,soon.length]);
+ if(!user)return <Auth onAuth={u=>{setUser(u);setTasks(store.get('pl:tasks:'+u.email,[]))}}/>;
+ const add=t=>save([...tasks,{...t,id:Date.now()+Math.random(),completed:false}]);
+ const toggle=t=>save(tasks.map(x=>x.id===t.id?{...x,completed:!x.completed}:x));
+ const del=t=>save(tasks.filter(x=>x.id!==t.id));
+ const courses=[...new Set(tasks.map(t=>t.course).filter(Boolean))];
+ const q=flt.q.toLowerCase();
+ const shown=tasks.filter(t=>(!q||(t.title+' '+t.course).toLowerCase().includes(q))&&(!flt.status||(flt.status==='done')===t.completed)&&(!flt.priority||t.priority===flt.priority)&&(!flt.course||t.course===flt.course))
+  .sort((a,b)=>a.completed-b.completed||a.due_date.localeCompare(b.due_date));
+ const f=k=>e=>setFlt({...flt,[k]:e.target.value});
+ return <div><header><h1>📚 Plumline <span style={{opacity:.8,fontWeight:400,fontSize:14}}>· hi, {user.name}</span></h1><button className="ghost" style={{color:'#fff',borderColor:'#ffffff88'}} onClick={()=>{store.del('pl:session');setUser(null)}}>Log out</button></header>
+ <div className="wrap">
+  {(late.length>0||soon.length>0)&&<div className="banner">⏰ <b>Reminders:</b> {late.length>0&&<>{late.length} overdue. </>}{soon.length>0&&<>Due soon: {soon.slice(0,4).map(t=>t.title+' ('+t.due_date+')').join(', ')}</>}</div>}
+  <div className="stats"><div className="stat" style={{background:'var(--plum)',color:'var(--bg)'}}><b>{open.length}</b>Open</div><div className="stat" style={{background:'var(--rose)'}}><b>{late.length}</b>Overdue</div><div className="stat" style={{background:'var(--green)'}}><b>{tasks.length-open.length}</b>Completed</div><div className="stat" style={{background:'var(--amber)',color:'#2d1b2e'}}><b>{open.filter(t=>t.priority==='high').length}</b>High priority</div></div>
+  <TaskForm onSave={add}/>
+  <div className="card row"><input className="grow" placeholder="🔍 Search title or course…" value={flt.q} onChange={f('q')}/>
+   <select value={flt.status} onChange={f('status')}><option value="">All</option><option value="open">Open</option><option value="done">Completed</option></select>
+   <select value={flt.priority} onChange={f('priority')}><option value="">Any priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+   <select value={flt.course} onChange={f('course')}><option value="">All courses</option>{courses.map(c=><option key={c}>{c}</option>)}</select>
+   <button className={view==='list'?'on':'ghost'} onClick={()=>setView('list')}>List</button><button className={view==='cal'?'on':'ghost'} onClick={()=>setView('cal')}>Calendar</button></div>
+  {view==='cal'?<Calendar tasks={shown}/>:shown.length===0?<div className="card m">No tasks match. Add one above!</div>:shown.map(t=>
+   <div key={t.id} className={'task '+t.priority+(t.completed?' done':'')}>
+    <input type="checkbox" checked={t.completed} onChange={()=>toggle(t)} style={{width:20,height:20}}/>
+    <div className="grow"><div className="t">{t.title}{t.course&&<span className="badge">{t.course}</span>}{!t.completed&&t.due_date<TODAY&&<span className="badge late">Overdue</span>}</div><div className="m">Due {t.due_date} · {t.priority} priority</div></div>
+    <button className="ghost" onClick={()=>del(t)}>🗑</button></div>)}
+ </div></div>
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>
