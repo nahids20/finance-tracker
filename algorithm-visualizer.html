@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Algorithm Visualizer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap">
+<style>
+:root{--bg:#e9eef2;--panel:#fbfcfd;--ink:#13222e;--mut:#5b6b78;--line:#cdd7de;--bar:#6f93ab;--cmp:#e8a317;--swp:#d6453b;--ok:#2f9a6a;--piv:#7a4cc2;--dim:#cfd8de;--acc:#1d5fa8;--accink:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a23;--panel:#16252f;--ink:#e6eef4;--mut:#93a5b3;--line:#27394518;--line:#2a3d4b;--bar:#4d7691;--cmp:#f0b429;--swp:#ef6a5f;--ok:#46c08b;--piv:#a07be0;--dim:#233644;--acc:#6db3f2;--accink:#0b1620}}
+:root[data-theme="dark"]{--bg:#0f1a23;--panel:#16252f;--ink:#e6eef4;--mut:#93a5b3;--line:#2a3d4b;--bar:#4d7691;--cmp:#f0b429;--swp:#ef6a5f;--ok:#46c08b;--piv:#a07be0;--dim:#233644;--acc:#6db3f2;--accink:#0b1620}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:clamp(26px,5vw,38px);line-height:1.1;margin:8px 0 4px;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--mut);margin:0 0 18px;max-width:60ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button{border:1px solid var(--line);background:transparent;color:var(--ink);padding:7px 12px;border-radius:999px;font:inherit;font-size:14px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+.grp{font-size:13px;color:var(--mut);align-self:center;margin:0 2px 0 8px}
+.grp:first-child{margin-left:0}
+canvas{width:100%;height:340px;display:block;border-radius:8px}
+.info{display:grid;grid-template-columns:1fr auto;gap:8px 20px;margin:12px 0 4px;align-items:start}
+.info p{margin:0;color:var(--mut);font-size:15px}
+.stats{display:flex;gap:18px;font-variant-numeric:tabular-nums}
+.stats div{text-align:right}.stats b{display:block;font-size:22px;line-height:1.1}.stats span{font-size:13px;color:var(--mut)}
+.ctl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.ctl button{font:inherit;font-size:15px;padding:8px 16px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.ctl button.main{background:var(--acc);border-color:var(--acc);color:var(--accink);font-weight:600;min-width:92px}
+.ctl label{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--mut)}
+.ctl input[type=range]{width:120px;accent-color:var(--acc)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:13px;color:var(--mut)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#status{font-weight:600;color:var(--ink)}
+@media (max-width:560px){.info{grid-template-columns:1fr}.stats div{text-align:left}canvas{height:260px}}
+</style></head>
+<body><div class="wrap">
+<h1>Algorithm Visualizer</h1>
+<p class="sub">Watch sorting and searching algorithms work one comparison at a time. Pick an algorithm, then press Play or step through it.</p>
+<div class="panel">
+<div class="tabs" id="tabs" role="group" aria-label="Algorithms"></div>
+<canvas id="cv" role="img" aria-label="Bar chart visualization of the running algorithm"></canvas>
+<div class="info"><div><p id="desc"></p><p><span id="status">Ready</span></p></div>
+<div class="stats"><div><b id="sCmp">0</b><span id="lCmp">Comparisons</span></div><div><b id="sSwp">0</b><span>Swaps and writes</span></div></div></div>
+<div class="ctl">
+<button class="main" id="play">Play</button><button id="step">Step</button><button id="reset">Reset</button><button id="shuf">New array</button>
+<label>Size <input type="range" id="size" min="8" max="120" value="40"></label>
+<label>Speed <input type="range" id="speed" min="1" max="100" value="55"></label>
+<button id="theme" aria-label="Toggle color theme">Theme</button>
+</div>
+<div class="legend"><span><i style="background:var(--bar)"></i>Unsorted</span><span><i style="background:var(--cmp)"></i>Comparing</span><span><i style="background:var(--swp)"></i>Swap or write</span><span><i style="background:var(--piv)"></i>Pivot</span><span><i style="background:var(--ok)"></i>Sorted or found</span></div>
+</div></div>
+<script>
+const $=id=>document.getElementById(id);
+const S={arr:[],orig:[],gen:null,run:false,cmp:0,swp:0,hi:{},done:new Set(),range:null,found:-1,target:null,algo:'bubble'};
+const swap=(a,i,j)=>{[a[i],a[j]]=[a[j],a[i]];S.swp++};
+const mark=(o)=>{S.hi=o};
+const A={
+bubble:{n:'Bubble sort',t:'Time O(n²), space O(1)',d:'Compares neighbors and swaps them when out of order, so the largest value bubbles to the end on every pass.',
+*f(a){const n=a.length;for(let i=0;i<n-1;i++){let sw=false;for(let j=0;j<n-1-i;j++){S.cmp++;mark({c:[j,j+1]});yield;if(a[j]>a[j+1]){swap(a,j,j+1);mark({w:[j,j+1]});sw=true;yield}}S.done.add(n-1-i);if(!sw)break}}},
+insertion:{n:'Insertion sort',t:'Time O(n²), space O(1)',d:'Takes each value in turn and slides it left until it sits in the right place among the values already sorted.',
+*f(a){for(let i=1;i<a.length;i++){for(let j=i;j>0;j--){S.cmp++;mark({c:[j-1,j]});yield;if(a[j-1]>a[j]){swap(a,j-1,j);mark({w:[j-1,j]});yield}else break}}}},
+selection:{n:'Selection sort',t:'Time O(n²), space O(1)',d:'Scans the unsorted part for the smallest value and swaps it into the next slot at the front.',
+*f(a){const n=a.length;for(let i=0;i<n;i++){let m=i;for(let j=i+1;j<n;j++){S.cmp++;mark({c:[j,m],p:m});yield;if(a[j]<a[m])m=j}if(m!==i){swap(a,i,m);mark({w:[i,m]});yield}S.done.add(i)}}},
+merge:{n:'Merge sort',t:'Time O(n log n), space O(n)',d:'Splits the array in halves, sorts each half, then merges them by repeatedly taking the smaller front value.',
+*f(a){function*ms(l,r){if(l>=r)return;const m=(l+r)>>1;yield*ms(l,m);yield*ms(m+1,r);const L=a.slice(l,m+1),R=a.slice(m+1,r+1);let i=0,j=0,k=l;
+const put=function*(v){a[k]=v;S.swp++;mark({w:[k]});k++;yield};
+while(i<L.length&&j<R.length){S.cmp++;mark({c:[k]});yield;yield*put(L[i]<=R[j]?L[i++]:R[j++])}
+while(i<L.length)yield*put(L[i++]);while(j<R.length)yield*put(R[j++])}
+yield*ms(0,a.length-1)}},
+quick:{n:'Quick sort',t:'Time O(n log n) average, O(n²) worst, space O(log n)',d:'Picks the last value as a pivot, moves smaller values to its left, then sorts each side the same way.',
+*f(a){function*qs(lo,hi){if(lo>hi)return;if(lo===hi){S.done.add(lo);return}const p=a[hi];let i=lo;
+for(let j=lo;j<hi;j++){S.cmp++;mark({c:[j],p:hi});yield;if(a[j]<p){if(i!==j)swap(a,i,j);mark({w:[i,j],p:hi});yield;i++}}
+swap(a,i,hi);mark({w:[i,hi],p:i});yield;S.done.add(i);yield*qs(lo,i-1);yield*qs(i+1,hi)}
+yield*qs(0,a.length-1)}},
+linear:{n:'Linear search',t:'Time O(n), space O(1)',search:1,d:'Checks every value from the left until it finds the target. Works on any array, sorted or not.',
+*f(a){for(let i=0;i<a.length;i++){S.cmp++;mark({c:[i]});yield;if(a[i]===S.target){S.found=i;return}}}},
+binary:{n:'Binary search',t:'Time O(log n), space O(1)',search:1,sorted:1,d:'Needs a sorted array. Checks the middle value and discards the half that cannot contain the target.',
+*f(a){let lo=0,hi=a.length-1;while(lo<=hi){const m=(lo+hi)>>1;S.range=[lo,hi];S.cmp++;mark({c:[m]});yield;if(a[m]===S.target){S.found=m;S.range=[m,m];return}if(a[m]<S.target)lo=m+1;else hi=m-1}}}
+};
+function newArr(){const n=+$('size').value;S.orig=Array.from({length:n},(_,i)=>i+1);
+for(let i=n-1;i>0;i--){const j=Math.random()*(i+1)|0;[S.orig[i],S.orig[j]]=[S.orig[j],S.orig[i]]}reset()}
+function reset(){S.run=false;S.gen=null;S.cmp=S.swp=0;S.hi={};S.done=new Set();S.range=null;S.found=-1;S.target=null;
+S.arr=S.orig.slice();const al=A[S.algo];
+if(al.sorted)S.arr.sort((a,b)=>a-b);
+if(al.search)S.target=S.arr[Math.random()*S.arr.length|0];
+$('play').textContent='Play';
+$('status').textContent=al.search?'Target value: '+S.target:'Ready';
+$('lCmp').textContent=al.search?'Checks':'Comparisons';
+$('desc').textContent=al.d+' '+al.t+'.';
+draw()}
+function start(){if(!S.gen)S.gen=A[S.algo].f(S.arr)}
+function finish(){S.gen=null;S.run=false;S.hi={};$('play').textContent='Play';
+const al=A[S.algo];
+if(al.search){$('status').textContent=S.found>=0?'Found '+S.target+' at index '+S.found+' after '+S.cmp+' checks':'Not found';}
+else{for(let i=0;i<S.arr.length;i++)S.done.add(i);$('status').textContent='Sorted'}}
+function step(){start();if(S.gen.next().done)finish()}
+const cv=$('cv'),ctx=cv.getContext('2d');
+function col(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function draw(){
+const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+if(cv.width!==w*dpr||cv.height!==h*dpr){cv.width=w*dpr;cv.height=h*dpr}
+ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+const C={bar:col('--bar'),cmp:col('--cmp'),swp:col('--swp'),ok:col('--ok'),piv:col('--piv'),dim:col('--dim'),ink:col('--ink')};
+const a=S.arr,n=a.length,gap=n>70?1:2,bw=w/n,H=h-6,H0=S.hi||{};
+const al=A[S.algo];
+for(let i=0;i<n;i++){
+let c=C.bar;
+if(S.done.has(i))c=C.ok;
+if(al.search&&S.range&&(i<S.range[0]||i>S.range[1]))c=C.dim;
+if(H0.p===i)c=C.piv;
+if(H0.c&&H0.c.includes(i))c=C.cmp;
+if(H0.w&&H0.w.includes(i))c=C.swp;
+if(al.search&&(i===S.found||a[i]===S.target&&S.found>=0))c=C.ok;
+else if(al.search&&a[i]===S.target&&!(H0.c&&H0.c.includes(i)))c=(S.range&&(i<S.range[0]||i>S.range[1]))?C.dim:C.piv;
+const bh=a[i]/n*H;
+ctx.fillStyle=c;ctx.fillRect(i*bw+gap/2,h-bh,Math.max(bw-gap,1),bh);
+if(n<=30){ctx.fillStyle=C.ink;ctx.font='600 12px "Instrument Sans",system-ui,sans-serif';ctx.textAlign='center';ctx.fillText(a[i],i*bw+bw/2,Math.max(h-bh-4,12))}
+}
+$('sCmp').textContent=S.cmp;$('sSwp').textContent=S.swp}
+let last=0,acc=0;
+function loop(t){const dt=Math.min(t-last,100);last=t;
+if(S.run){const sps=0.5*Math.pow(1.09,+$('speed').value);acc+=dt*sps/1000;let k=0;
+while(acc>=1&&S.run&&k<500){acc-=1;k++;step()}if(acc>1)acc=1}
+draw();requestAnimationFrame(loop)}
+// UI
+const tabs=$('tabs');
+[['Sorting',['bubble','insertion','selection','merge','quick']],['Searching',['linear','binary']]].forEach(([g,ids])=>{
+const s=document.createElement('span');s.className='grp';s.textContent=g;tabs.appendChild(s);
+ids.forEach(id=>{const b=document.createElement('button');b.textContent=A[id].n;b.dataset.id=id;b.setAttribute('aria-pressed',id===S.algo);
+b.onclick=()=>{S.algo=id;tabs.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));reset()};tabs.appendChild(b)})});
+$('play').onclick=()=>{if(S.run){S.run=false;$('play').textContent='Play';return}
+if(!S.gen&&(S.done.size===S.arr.length||S.found>=0||$('status').textContent==='Sorted'))reset();
+start();S.run=true;acc=1;$('play').textContent='Pause'};
+$('step').onclick=()=>{S.run=false;$('play').textContent='Play';step()};
+$('reset').onclick=reset;$('shuf').onclick=newArr;$('size').oninput=newArr;
+$('theme').onclick=()=>{const r=document.documentElement,dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dark?'light':'dark'};
+addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='BUTTON'){e.preventDefault();$('play').click()}});
+newArr();requestAnimationFrame(loop);
+</script></body></html>
